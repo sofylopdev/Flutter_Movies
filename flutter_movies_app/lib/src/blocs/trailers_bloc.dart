@@ -3,31 +3,8 @@ import 'dart:async';
 import 'package:flutter_movies_app/src/models/thumbs_vimeo.dart';
 import 'package:flutter_movies_app/src/models/trailer_model.dart';
 import 'package:flutter_movies_app/src/resources/repository.dart';
+import 'package:flutter_movies_app/src/states/trailers_state.dart';
 
-class TrailersState {
-  TrailersState();
-
-  factory TrailersState.trailerData(TrailerModel trailer) = TrailersDataState;
-
-  factory TrailersState.loadingState() = TrailerLoadingState;
-
-  factory TrailersState.videoImages(String thumbs) = TrailerVideoImagesState;
-}
-
-class TrailersDataState extends TrailersState {
-  final TrailerModel trailerModel;
-  TrailersDataState(this.trailerModel);
-}
-
-class TrailerLoadingState extends TrailersState {}
-
-class NoTrailerState extends TrailersState {}
-
-class TrailerVideoImagesState extends TrailersState {
-  final String thumbs;
-
-  TrailerVideoImagesState(this.thumbs);
-}
 
 class TrailersBloc {
   static final String YOUTUBE = "YouTube";
@@ -36,6 +13,10 @@ class TrailersBloc {
   final String lastPathThumbYoutube = "/0.jpg";
   final String baseThumbVimeoUrl = "http://vimeo.com/api/v2/video/";
   final String lastPathThumbVimeo = ".json";
+
+  List<String> thumbsList = new List();
+  bool _hasVimeoVideo = false;
+  int _totalNrTrailers = 0;
 
   TrailersBloc();
 
@@ -53,8 +34,9 @@ class TrailersBloc {
       _trailerModelStreamController.sink.add(TrailersState.trailerData(trailer));
 
       List<EachTrailer> trailersList = trailer.results;
+      _totalNrTrailers = trailersList.length;
 
-      Future<void> delayToGetTrailers = Future.delayed(Duration(seconds:1));
+      Future<void> delayToGetTrailers = Future.delayed(Duration(milliseconds: 200));
       delayToGetTrailers.then((voids){
 
         for (EachTrailer trailer in trailersList) {
@@ -69,21 +51,30 @@ class TrailersBloc {
   }
 
   void buildVideoImage(String site, String videoKey) {
+    if (site.contains(VIMEO)) {
+      _hasVimeoVideo = true;
+    String urlVimeoThumbList = "$baseThumbVimeoUrl$videoKey$lastPathThumbVimeo";
+    Future<ThumbsVimeo> results = _repository.fetchThumbs(urlVimeoThumbList);
+    results.then((thumbsValue) {
+      if (thumbsValue != null) {
+        thumbsList.add(thumbsValue.thumbnailMedium);
+        _trailerModelStreamController.sink
+            .add(TrailersState.videoImages(thumbsList));
+      }
+    });
+  }
     if (site.contains(YOUTUBE)) {
       String linkYoutube = "$baseThumbYoutubeUrl$videoKey$lastPathThumbYoutube";
+      thumbsList.add(linkYoutube);
+    }
+
+    if (!_hasVimeoVideo &&
+        thumbsList.isNotEmpty &&
+        (thumbsList.length > 1 || _totalNrTrailers == 1)) {
       _trailerModelStreamController.sink
-          .add(TrailersState.videoImages(linkYoutube));
+          .add(TrailersState.videoImages(thumbsList));
     }
-    if (site.contains(VIMEO)) {
-      String urlVimeoThumbList = "$baseThumbVimeoUrl$videoKey$lastPathThumbVimeo";
-      Future<ThumbsVimeo> results = _repository.fetchThumbs(urlVimeoThumbList);
-      results.then((thumbsValue) {
-        if (thumbsValue != null) {
-          _trailerModelStreamController.sink
-              .add(TrailersState.videoImages(thumbsValue.thumbnailMedium));
-        }
-      });
-    }
+
   }
 
   dispose() {

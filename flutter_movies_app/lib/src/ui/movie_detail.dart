@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_movies_app/src/blocs/trailers_bloc.dart';
 import 'package:flutter_movies_app/src/blocs/trailers_bloc_provider.dart';
 import 'package:flutter_movies_app/src/models/trailer_model.dart';
+import 'package:flutter_movies_app/src/states/trailers_state.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class MovieDetail extends StatefulWidget {
@@ -52,6 +53,8 @@ class MovieDetailState extends State<MovieDetail> {
   });
 
   TrailersBloc bloc;
+  List<String> trailerUrls = new List();
+  TrailerModel trailerModel;
 
   @override
   void didChangeDependencies() {
@@ -66,114 +69,116 @@ class MovieDetailState extends State<MovieDetail> {
     super.dispose();
   }
 
-  List<String> trailerUrls = new List();
-  TrailerModel trailerModel;
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         body: SafeArea(
-          top: false,
-          bottom: false,
-          child: NestedScrollView(
-              headerSliverBuilder: (BuildContext context,
-                  bool innerBoxIsScrolled) {
-                return <Widget>[
-                  SliverAppBar(
-                    expandedHeight: 200.0,
-                    floating: false,
-                    pinned: true,
-                    elevation: 0.0,
-                    flexibleSpace: FlexibleSpaceBar(
-                      background: Image.network(
-                          buildImageUrl(), fit: BoxFit.cover),
-                    ),
-                  )
-                ];
-              },
-              body: Padding(
-                padding: const EdgeInsets.all(10.0),
-                child: ListView(
-                  children: <Widget>[
-                    Container(
-                      margin: EdgeInsets.only(top: 5.0),
-                      child: Text(
-                        title,
-                        style:
+      top: false,
+      bottom: false,
+      child: NestedScrollView(
+          headerSliverBuilder: (BuildContext context, bool innerBoxIsScrolled) {
+            return <Widget>[
+              SliverAppBar(
+                expandedHeight: 200.0,
+                floating: false,
+                pinned: true,
+                elevation: 0.0,
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Image.network(buildImageUrl(), fit: BoxFit.cover),
+                ),
+              )
+            ];
+          },
+          body: Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: ListView(
+              children: <Widget>[
+                Container(
+                  margin: EdgeInsets.only(top: 5.0),
+                  child: Text(
+                    title,
+                    style:
                         TextStyle(fontSize: 25.0, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Container(
+                  margin: EdgeInsets.only(top: 8.0, bottom: 8.0),
+                  child: Row(
+                    children: <Widget>[
+                      Icon(
+                        Icons.favorite,
+                        color: Colors.red,
                       ),
-                    ),
-                    Container(
-                      margin: EdgeInsets.only(top: 8.0, bottom: 8.0),
-                      child: Row(
-                        children: <Widget>[
-                          Icon(
-                            Icons.favorite,
-                            color: Colors.red,
-                          ),
-                          Container(
-                              margin: EdgeInsets.only(right: 1.0, left: 1.0),
-                              child: Text(
-                                "$voteAverage",
-                                style: TextStyle(fontSize: 18.0),
-                              )),
-                          Container(
-                            margin: EdgeInsets.only(right: 10.0, left: 10.0),
-                            child: Text(
-                              releaseDate,
-                              style: TextStyle(fontSize: 18.0),
-                            ),
-                          )
-                        ],
-                      ),
-                    ),
-                    Container(
-                      margin: EdgeInsets.only(top: 8.0, bottom: 8.0),
-                      child: Text(
-                        description,
-                      ),
-                    ),
-                    Container(
-                      margin: EdgeInsets.only(top: 8.0, bottom: 8.0),
-                      child: Text(
-                        "Trailer",
-                        style: TextStyle(fontSize: 25.0),
-                      ),
-                    ),
-                    Container(margin: EdgeInsets.only(top: 8.0, bottom: 8.0)),
-                    StreamBuilder(
-                      stream: bloc.trailerModel,
-                      builder: (context,
-                          AsyncSnapshot<TrailersState> snapshot) {
-                        if (snapshot.hasData) {
-                          if (snapshot.data is TrailerLoadingState) {
-                            return loading();
-                          }
-                          if (snapshot.data is TrailersDataState) {
-                            TrailersDataState state = snapshot.data;
-                            trailerModel = state.trailerModel;
-                            if (trailerModel.results.length > 0)
-                              return loading();
-                            else
-                              return noTrailer();
-                          }
-                          if (snapshot.data is TrailerVideoImagesState) {
-                            TrailerVideoImagesState state = snapshot.data;
-                            String imageUrl = state.thumbs;
-                            trailerUrls.add(imageUrl);
-                            return trailerLayout(trailerModel, trailerUrls);
-                          } else {
-                            return hasError();
+                      Container(
+                          margin: EdgeInsets.only(right: 1.0, left: 1.0),
+                          child: Text(
+                            "$voteAverage",
+                            style: TextStyle(fontSize: 18.0),
+                          )),
+                      Container(
+                        margin: EdgeInsets.only(right: 10.0, left: 10.0),
+                        child: Text(
+                          releaseDate,
+                          style: TextStyle(fontSize: 18.0),
+                        ),
+                      )
+                    ],
+                  ),
+                ),
+                Container(
+                  margin: EdgeInsets.only(top: 8.0, bottom: 8.0),
+                  child: Text(
+                    description,
+                  ),
+                ),
+                Container(
+                  margin: EdgeInsets.only(top: 8.0, bottom: 8.0),
+                  child: Text(
+                    "Trailer",
+                    style: TextStyle(fontSize: 25.0),
+                  ),
+                ),
+                Container(margin: EdgeInsets.only(top: 8.0, bottom: 8.0)),
+                StreamBuilder(
+                  stream: bloc.trailerModel,
+                  builder: (context, AsyncSnapshot<TrailersState> snapshot) {
+                    if (snapshot.hasData) {
+                      if (snapshot.data is TrailerLoadingState) {
+                        return loading();
+                      }
+                      if (snapshot.data is TrailersDataState) {
+                        TrailersDataState state = snapshot.data;
+                        trailerModel = state.trailerModel;
+                        if (trailerModel.results.length > 0)
+                          return loading();
+                        else
+                          return noTrailer();
+                      }
+                      if (snapshot.data is TrailerVideoImagesState) {
+                        TrailerVideoImagesState state = snapshot.data;
+                        if (trailerUrls.length != 0) {
+                          for (int i = 0; i < trailerUrls.length; i++) {
+                            if (trailerUrls[i].compareTo(state.thumbs[i]) !=
+                                0) {
+                              trailerUrls.add(state.thumbs[i]);
+                            }
                           }
                         } else {
-                          return hasError();
+                          trailerUrls.addAll(state.thumbs);
                         }
-                      },
-                    )
-                  ],
-                ),
-              )),
-        ));
+                        return trailerLayout(trailerModel, trailerUrls);
+                      } else {
+                        return hasError();
+                      }
+                    } else {
+                      return hasError();
+                    }
+                  },
+                )
+              ],
+            ),
+          )),
+    ));
   }
 
   Widget noTrailer() {
@@ -219,19 +224,22 @@ class MovieDetailState extends State<MovieDetail> {
             print("Couldn't launch video.");
           }
         },
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            getImageForVideo(url),
-            Container(
-              width: 200,
-              child: Text(
-                trailerTitle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              getImageForVideo(url),
+              Container(
+                width: 200,
+                child: Text(
+                  trailerTitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

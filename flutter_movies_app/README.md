@@ -23,4 +23,4 @@ samples, guidance on mobile development, and a full API reference.
 
 Search for "todo: put your api key here:"
 and replace the 'put_your_api_key_here' with your own key.
-To get your own key, register on MovieDb (https://www.themoviedb.org/account/signup) and get an API key.
+To get your own key, register on [MovieDb](https://www.themoviedb.org/account/signup) and get an API key.

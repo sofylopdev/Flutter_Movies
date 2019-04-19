@@ -12,12 +12,11 @@ class MovieApiProvider {
   final _apiKey = 'put_your_api_key_here';
   
   final _baseUrl = "http://api.themoviedb.org/3/movie";
-  //final _youtubeBaseUrl = "https://www.youtube.com/watch?v=";
+  final _lastPathPage = "&page=";
 
-  Future<ItemModel> fetchMovieList() async {
+  Future<ItemModel> fetchMovieList(int page) async {
     final response = await client
-        .get("$_baseUrl/popular?api_key=$_apiKey");
-    print(response.body.toString());
+        .get("$_baseUrl/popular?api_key=$_apiKey$_lastPathPage$page");
     if (response.statusCode == 200) {
       // If the call to the server was successful, parse the JSON
       return ItemModel.fromJson(json.decode(response.body));
@@ -30,7 +29,6 @@ class MovieApiProvider {
   Future<TrailerModel> fetchTrailers(int movieId) async {
     final response = await client.get(
         "$_baseUrl/$movieId/videos?api_key=$_apiKey");
-    print(response.body.toString());
     if (response.statusCode == 200) {
       // If the call to the server was successful, parse the JSON
       return TrailerModel.fromJson(json.decode(response.body));

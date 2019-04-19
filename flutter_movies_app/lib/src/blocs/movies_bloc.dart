@@ -1,27 +1,42 @@
-import '../resources/repository.dart';
-import 'package:rxdart/rxdart.dart';
+import 'dart:async';
+
 import '../models/item_model.dart';
+import '../resources/repository.dart';
 
 class MoviesBloc {
+  MoviesBloc();
+
   final _repository = Repository();
 
-  // PublishSubject object: adds the data which it got from the server
-  // in form of ItemModel object and pass it to the UI screen as stream
-  final _moviesFetcher = PublishSubject<ItemModel>();
+  int page = 1;
+  int maxPages = 1;
+  List<Movie> moviesList = new List();
 
+  bool _hasReachedMax() => page == maxPages;
 
-  //To pass the ItemModel object as stream:
-  Observable<ItemModel> get allMovies => _moviesFetcher.stream;
+  final _moviesModelStreamController = StreamController();
 
-  fetchAllMovies() async {
-    ItemModel itemModel = await _repository.fetchAllMovies();
-    _moviesFetcher.sink.add(itemModel);
+  Stream get moviesModel => _moviesModelStreamController.stream;
+
+  initState() async {
+    ItemModel itemModel = await _repository.fetchAllMovies(page);
+    maxPages = itemModel.total_pages;
+    _moviesModelStreamController.add(itemModel.results);
+  }
+
+  Future<void> fetchMore() async {
+    if (!_hasReachedMax()) {
+      page++;
+      fetchMovies();
+    }
+  }
+
+  fetchMovies() async {
+    ItemModel itemModel = await _repository.fetchAllMovies(page);
+    _moviesModelStreamController.add(itemModel.results);
   }
 
   dispose() {
-    _moviesFetcher.close();
+    _moviesModelStreamController.close();
   }
 }
-
-//single instance?
-final bloc = MoviesBloc();

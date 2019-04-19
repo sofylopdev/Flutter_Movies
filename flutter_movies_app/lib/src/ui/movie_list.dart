@@ -14,12 +14,26 @@ class MovieList extends StatefulWidget {
 }
 
 class MovieListState extends State<MovieList> {
- final String baseImageUrl = "https://image.tmdb.org/t/p/w185";
+  final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey<ScaffoldState>();
+
+  MoviesBloc bloc;
+  List<Movie> moviesList;
+
+  final String baseImageUrl = "https://image.tmdb.org/t/p/w185";
+  final _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    bloc.fetchAllMovies();
+    moviesList = new List();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    bloc = MoviesBloc();
+    bloc.initState();
   }
 
   @override
@@ -28,19 +42,40 @@ class MovieListState extends State<MovieList> {
     super.dispose();
   }
 
+  void _onScroll() {
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+
+    if (currentScroll == maxScroll) {
+      _scaffoldKey.currentState.showSnackBar(SnackBar(
+        content: Container(
+            height: 30,
+            width: 30,
+            child: Center(child: CircularProgressIndicator())),
+        //Text('Loading more...'),
+        duration: Duration(milliseconds: 500),
+      ));
+
+      bloc.fetchMore();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        key: _scaffoldKey,
         appBar: AppBar(
           title: Text("Popular Movies"),
         ),
         body: StreamBuilder(
-            stream: bloc.allMovies,
-            builder: (context, AsyncSnapshot<ItemModel> snapshot) {
-              if (snapshot.hasData) {
-                return buildList(snapshot, context);
-              } else if (snapshot.hasError) {
+            stream: bloc.moviesModel,
+            builder: (context, AsyncSnapshot snapshot) {
+              if (snapshot.hasError) {
                 return Text(snapshot.error.toString());
+              }
+              if (snapshot.hasData) {
+                moviesList.addAll(snapshot.data);
+                return buildList(context);
               }
               return Center(
                 child: CircularProgressIndicator(),
@@ -48,36 +83,37 @@ class MovieListState extends State<MovieList> {
             }));
   }
 
-  Widget buildList(AsyncSnapshot<ItemModel> snapshot, BuildContext cxt) {
+  Widget buildList(BuildContext cxt) {
     return StaggeredGridView.countBuilder(
       staggeredTileBuilder: (index) => new StaggeredTile.fit(1),
-      itemCount: snapshot.data.results.length,
+      itemCount: moviesList.length,
       crossAxisCount: 2,
+      controller: _scrollController,
       itemBuilder: (BuildContext context, int index) {
-        ItemModel itemModel = snapshot.data;
+        var movie = moviesList[index];
         return GestureDetector(
           child: Image.network(
-            '$baseImageUrl${itemModel.results[index].poster_path}',
+            '$baseImageUrl${movie.poster_path}',
             fit: BoxFit.contain,
           ),
           onTap: () {
-            _goToDetails(itemModel, index);
+            _goToDetails(movie);
           },
         );
       },
     );
   }
 
-  _goToDetails(ItemModel data, int index) {
+  _goToDetails(var movie) {
     Route route = MaterialPageRoute(
         builder: (context) => TrailersBlocProvider(
                 child: MovieDetail(
-              title: data.results[index].title,
-              posterUrl: data.results[index].backdrop_path,
-              description: data.results[index].overview,
-              releaseDate: data.results[index].release_date,
-              voteAverage: data.results[index].vote_average,
-              movieId: data.results[index].id,
+              title: movie.title,
+              posterUrl: movie.backdrop_path,
+              description: movie.overview,
+              releaseDate: movie.release_date,
+              voteAverage: movie.vote_average,
+              movieId: movie.id,
             )));
 
     Navigator.push(context, route);
