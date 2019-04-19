@@ -74,7 +74,15 @@ class MovieListState extends State<MovieList> {
                 return Text(snapshot.error.toString());
               }
               if (snapshot.hasData) {
-                moviesList.addAll(snapshot.data);
+                if(moviesList.length != 0) {
+                  for (Movie eachMovie in snapshot.data) {
+                    if (!moviesList.contains(eachMovie)) {
+                      moviesList.add(eachMovie);
+                    }
+                  }
+                }else{
+                  moviesList.addAll(snapshot.data);
+                }
                 return buildList(context);
               }
               return Center(
